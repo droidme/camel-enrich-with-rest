@@ -1,6 +1,7 @@
 package io.droidme.camelrest;
 
 import io.droidme.camelrest.tds.Security;
+import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.rest.RestBindingMode;
 import org.springframework.stereotype.Component;
@@ -32,6 +33,7 @@ public class MySpringBootRouter extends RouteBuilder {
                 .log(INFO, "Route ${routeId} startet.")
                 .log(INFO, "Original Message: ${body}.")
                 // enrich properties with security data
+
                 .enrich("direct:security-data", (oldExchange, newExchange) -> {
                     oldExchange.setProperty("Security", newExchange.getIn().getBody(Security.class));
                     return oldExchange;
@@ -40,8 +42,14 @@ public class MySpringBootRouter extends RouteBuilder {
                 .log(INFO, "Enriched Message Property('Security'): ${exchangeProperty.Security.isin}")
                 .to(STOP_ENDPOINT);
 
+        /*
+         * TODO: describe contract
+        */
+
         from("direct:security-data")
-                .toD("rest:get:/api/securities/0815")
+                .setHeader(Exchange.REST_HTTP_QUERY,
+                        simple("isin=12345678&ccy=245"))
+                .to("rest:get:api/securities/query")
                 .unmarshal().json(Security.class);
     }
 
